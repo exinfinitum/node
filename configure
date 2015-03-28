@@ -366,6 +366,11 @@ parser.add_option('--static-libstdc++',
     dest='use_static_libstdcpp',
     help='statically link to libstdc++ library instead of dynamically linking')
 
+parser.add_option('--with-v8-tests',
+    action='store_true',
+    dest='with_v8_tests',
+    help='Build v8 test suite')
+
 (options, args) = parser.parse_args()
 
 # Expand ~ in the install prefix now, it gets written to multiple files.
@@ -789,6 +794,18 @@ def configure_v8(o):
   o['variables']['v8_optimized_debug'] = 0  # Compile with -O0 in debug builds.
   o['variables']['v8_random_seed'] = 0  # Use a random seed for hash tables.
   o['variables']['v8_use_snapshot'] = 0 if options.without_snapshot else 1
+
+  # assume shared_v8 if one of these is set?
+#  if options.shared_v8_libpath:
+#    o['libraries'] += ['-L%s' % options.shared_v8_libpath]
+#  if options.shared_v8_libname:
+#    o['libraries'] += ['-l%s' % options.shared_v8_libname]
+#  elif options.shared_v8:
+#    o['libraries'] += ['-lv8']
+#  if options.shared_v8_includes:
+#    o['include_dirs'] += [options.shared_v8_includes]
+  if options.with_v8_tests:
+    o['variables']['with_v8_tests'] = 1
 
 def configure_openssl(o):
   o['variables']['node_use_openssl'] = b(not options.without_ssl)

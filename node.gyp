@@ -813,6 +813,12 @@
         [ 'OS=="aix"', {
           'ldflags': ['-Wl,-bbigtoc,-bE:<(PRODUCT_DIR)/node.exp']
         }],
+        [
+          'with_v8_tests==1',
+          {
+            'dependencies': [ 'tools/v8/v8tests.gyp:d8-tests' ]
+          }
+        ]
       ],
        'actions': [
          {
