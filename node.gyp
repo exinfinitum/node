@@ -5,7 +5,7 @@
     'node_use_lttng%': 'false',
     'node_use_etw%': 'false',
     'node_use_perfctr%': 'false',
-    'node_use_static_libstc++%': 'false',
+    'node_use_static_libstdcpp%': 'false',
     'node_has_winsdk%': 'false',
     'node_shared_zlib%': 'false',
     'node_shared_http_parser%': 'false',
