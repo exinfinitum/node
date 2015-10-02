@@ -349,7 +349,7 @@ parser.add_option('--enable-static',
 parser.add_option('--static-libstdc++',
     action='store',
     dest='use_static_libstdcpp',
-    help='statically link to libstdc++ shared library instead of dynamically linking')
+    help='statically link to libstdc++ library instead of dynamically linking')
 
 (options, args) = parser.parse_args()
 
