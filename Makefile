@@ -11,6 +11,8 @@ STAGINGSERVER ?= node-www
 
 OSTYPE := $(shell uname -s | tr '[A-Z]' '[a-z]')
 
+BUILDTYPE_LOWER := $(shell echo $(BUILDTYPE) | tr '[A-Z]' '[a-z]')
+
 # Determine EXEEXT
 EXEEXT := $(shell $(PYTHON) -c \
 		"import sys; print('.exe' if sys.platform == 'win32' else '')")
@@ -226,44 +228,37 @@ test-timers-clean:
 
 test-v8:
 	# note: only does a quickcheck
-	mv deps/v8/out/$(ARCH).release/* out/Release/ || true
-	deps/v8/tools/run-tests.py --arch=$(ARCH) --mode=release --noi18n \
-	  --no-presubmit --quickcheck --shell-dir=out/Release
+	deps/v8/tools/run-tests.py --arch=$(ARCH) --mode=$(BUILDTYPE_LOWER) --noi18n \
+	  --no-presubmit --quickcheck --shell-dir=deps/v8/out/$(ARCH).$(BUILDTYPE_LOWER)
 
 test-v8-intl:
 	# note: only does a quickcheck...
-	mv deps/v8/out/$(ARCH).release/* out/Release/ || true
-	deps/v8/tools/run-tests.py --arch=$(ARCH) --mode=release --no-presubmit \
-	  --quickcheck --shell-dir=out/Release intl
+	deps/v8/tools/run-tests.py --arch=$(ARCH) --mode=$(BUILDTYPE_LOWER) --no-presubmit \
+	  --quickcheck --shell-dir=deps/v8/out/$(ARCH).$(BUILDTYPE_LOWER) intl
 
 test-v8-benchmarks:
 	# note: this runs with --download-data so it'll go out and
-	#       fetch the additional bits it needs to run the benchmarks
-	mv deps/v8/out/$(ARCH).release/* out/Release/ || true
-	deps/v8/tools/run-tests.py --arch=$(ARCH) --mode=release --download-data \
-	  --no-presubmit --shell-dir=out/Release benchmarks
+	deps/v8/tools/run-tests.py --arch=$(ARCH) --mode=$(BUILDTYPE_LOWER) --download-data \
+	  --no-presubmit --shell-dir=deps/v8/out/$(ARCH).$(BUILDTYPE_LOWER) benchmarks
 
 test-v8-all: test-v8 test-v8-intl test-v8-benchmarks
 	# runs all v8 tests
 
 test-v8z:
 	# note: only does a quickcheck
-	mv deps/v8z/out/$(ARCH).release/* out/Release/ || true
-	deps/v8z/tools/run-tests.py --arch=$(ARCH) --mode=release --noi18n \
-	  --no-presubmit --quickcheck --shell-dir=out/Release
+	deps/v8z/tools/run-tests.py --arch=$(ARCH) --mode=$(BUILDTYPE_LOWER) --noi18n \
+	  --no-presubmit --quickcheck --shell-dir=deps/v8z/out/$(ARCH).$(BUILDTYPE_LOWER)
 
 test-v8z-intl:
 	# note: only does a quickcheck...
-	mv deps/v8z/out/$(ARCH).release/* out/Release/ || true
-	deps/v8z/tools/run-tests.py --arch=$(ARCH) --mode=release --no-presubmit \
-	  --quickcheck --shell-dir=out/Release intl
+	deps/v8z/tools/run-tests.py --arch=$(ARCH) --mode=$(BUILDTYPE_LOWER) --no-presubmit \
+	  --quickcheck --shell-dir=deps/v8z/out/$(ARCH).$(BUILDTYPE_LOWER) intl
 
 test-v8z-benchmarks:
 	# note: this runs with --download-data so it'll go out and
 	#       fetch the additional bits it needs to run the benchmarks
-	mv deps/v8z/out/$(ARCH).release/* out/Release/ || true
-	deps/v8z/tools/run-tests.py --arch=$(ARCH) --mode=release --download-data \
-	  --no-presubmit --shell-dir=out/Release benchmarks
+	deps/v8z/tools/run-tests.py --arch=$(ARCH) --mode=$(BUILDTYPE_LOWER) --download-data \
+	  --no-presubmit --shell-dir=deps/v8z/out/$(ARCH).$(BUILDTYPE_LOWER) benchmarks
 
 test-v8z-all: test-v8z test-v8z-intl test-v8z-benchmarks
 	# runs all v8z tests
