@@ -89,6 +89,44 @@ check: test
 cctest: all
 	@out/$(BUILDTYPE)/$@
 
+v8:
+	tools/make-v8.sh v8
+	#cd deps/v8
+ifneq (,$(filter $(DESTCPU),x86))
+	+make -C deps/v8 i18nsupport=off;
+else
+ifneq (,$(filter $(ARCH),x86))
+	+make -C deps/v8 i18nsupport=off;
+else
+ifeq ($(ARCH)$(DESTCPU),)
+	+make -C deps/v8 i18nsupport=off;
+else
+	+make -C deps/v8 $(ARCH) i18nsupport=off;
+endif
+	+make -C deps/v8 $(ARCH) i18nsupport=off;
+endif
+	+make -C deps/v8 $(ARCH) i18nsupport=off;
+endif
+
+v8z:
+	tools/make-v8.sh v8z
+	#cd deps/v8
+ifneq (,$(filter $(DESTCPU),x86))
+	+make -C deps/v8z i18nsupport=off;
+else
+ifneq (,$(filter $(ARCH),x86))
+	+make -C deps/v8z i18nsupport=off;
+else
+ifeq ($(ARCH)$(DESTCPU),)
+	+make -C deps/v8z i18nsupport=off;
+else
+	+make -C deps/v8z $(ARCH) i18nsupport=off;
+endif
+	+make -C deps/v8z $(ARCH) i18nsupport=off;
+endif
+	+make -C deps/v8z $(ARCH) i18nsupport=off;
+endif
+
 test: | cctest  # Depends on 'all'.
 	$(PYTHON) tools/test.py --mode=release message parallel sequential -J
 	$(MAKE) jslint
@@ -188,23 +226,47 @@ test-timers-clean:
 
 test-v8:
 	# note: only does a quickcheck
+	mv deps/v8/out/$(ARCH).release/* out/Release/ || true
 	deps/v8/tools/run-tests.py --arch=$(ARCH) --mode=release --noi18n \
 	  --no-presubmit --quickcheck --shell-dir=out/Release
 
 test-v8-intl:
 	# note: only does a quickcheck...
+	mv deps/v8/out/$(ARCH).release/* out/Release/ || true
 	deps/v8/tools/run-tests.py --arch=$(ARCH) --mode=release --no-presubmit \
 	  --quickcheck --shell-dir=out/Release intl
 
 test-v8-benchmarks:
 	# note: this runs with --download-data so it'll go out and
 	#       fetch the additional bits it needs to run the benchmarks
+	mv deps/v8/out/$(ARCH).release/* out/Release/ || true
 	deps/v8/tools/run-tests.py --arch=$(ARCH) --mode=release --download-data \
 	  --no-presubmit --shell-dir=out/Release benchmarks
 
 test-v8-all: test-v8 test-v8-intl test-v8-benchmarks
 	# runs all v8 tests
 
+test-v8z:
+	# note: only does a quickcheck
+	mv deps/v8z/out/$(ARCH).release/* out/Release/ || true
+	deps/v8z/tools/run-tests.py --arch=$(ARCH) --mode=release --noi18n \
+	  --no-presubmit --quickcheck --shell-dir=out/Release
+
+test-v8z-intl:
+	# note: only does a quickcheck...
+	mv deps/v8z/out/$(ARCH).release/* out/Release/ || true
+	deps/v8z/tools/run-tests.py --arch=$(ARCH) --mode=release --no-presubmit \
+	  --quickcheck --shell-dir=out/Release intl
+
+test-v8z-benchmarks:
+	# note: this runs with --download-data so it'll go out and
+	#       fetch the additional bits it needs to run the benchmarks
+	mv deps/v8z/out/$(ARCH).release/* out/Release/ || true
+	deps/v8z/tools/run-tests.py --arch=$(ARCH) --mode=release --download-data \
+	  --no-presubmit --shell-dir=out/Release benchmarks
+
+test-v8z-all: test-v8z test-v8z-intl test-v8z-benchmarks
+	# runs all v8z tests
 
 apidoc_sources = $(wildcard doc/api/*.markdown)
 apidocs = $(addprefix out/,$(apidoc_sources:.markdown=.html)) \
