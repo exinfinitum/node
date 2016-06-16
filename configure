@@ -359,6 +359,8 @@ def cc_macros(cc=None):
   if cc is None:
     cc = CC
 
+  print shlex.split(cc) + ['-dM', '-E', '-']
+
   try:
     p = subprocess.Popen(shlex.split(cc) + ['-dM', '-E', '-'],
                          stdin=subprocess.PIPE,
@@ -462,7 +464,7 @@ def host_arch_cc():
   }
 
   rtn = 'ia32' # default
-
+  print k;
   for i in matchup:
     if i in k and k[i] != '0':
       rtn = matchup[i]

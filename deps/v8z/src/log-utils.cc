@@ -6,7 +6,6 @@
 
 #include "src/log-utils.h"
 #include "src/string-stream.h"
-#include "version.h"
 
 namespace v8 {
 namespace internal {
@@ -50,14 +49,6 @@ void Log::Initialize(const char* log_file_name) {
     } else {
       OpenFile(log_file_name);
     }
-  }
-
-  if (output_handle_ != NULL) {
-    Log::MessageBuilder msg(this);
-    msg.Append("v8-version,%d,%d,%d,%d,%d", Version::GetMajor(),
-               Version::GetMinor(), Version::GetBuild(), Version::GetPatch(),
-               Version::IsCandidate());
-    msg.WriteToLogFile();
   }
 }
 
@@ -195,10 +186,17 @@ void Log::MessageBuilder::AppendDetailed(String* str, bool show_impl_info) {
   }
   for (int i = 0; i < len; i++) {
     uc32 c = str->Get(i);
+#ifdef V8_OS_ZOS
+    if (ebcdic2ascii(c) > 0xff) {
+      Append("\\u%04x", c);
+    } else if (ebcdic2ascii(c) < 32 || ebcdic2ascii(c) > 126) {
+      Append("\\x%02x", c);
+#else
     if (c > 0xff) {
       Append("\\u%04x", c);
-    } else if (c < 32 || c > 126) {
+    } else if  (c < 32 || c > 126) {
       Append("\\x%02x", c);
+#endif
     } else if (c == ',') {
       Append("\\,");
     } else if (c == '\\') {

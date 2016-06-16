@@ -32,6 +32,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import platform
 
 from ..local import utils
 from ..objects import output
@@ -43,6 +44,9 @@ def KillProcessWithID(pid):
   else:
     os.kill(pid, signal.SIGTERM)
 
+def CleanupSemaphores():
+  if (platform.system() == 'OS/390'):
+    os.system("/tmp/cleanup_semaphores.sh")
 
 MAX_SLEEP_TIME = 0.1
 INITIAL_SLEEP_TIME = 0.0001
@@ -148,4 +152,6 @@ def Execute(args, verbose=False, timeout=None):
     errors = file(errname).read()
     CheckedUnlink(outname)
     CheckedUnlink(errname)
+
+  CleanupSemaphores()
   return output.Output(exit_code, timed_out, out, errors)

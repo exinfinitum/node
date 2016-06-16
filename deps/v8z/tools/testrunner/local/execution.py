@@ -29,6 +29,7 @@
 import os
 import shutil
 import time
+import sys
 
 from pool import Pool
 from . import commands
@@ -143,7 +144,7 @@ class Runner(object):
     # as unexpected even if it flakily passes in order to include it in the
     # output.
     self.indicator.HasRun(test, has_unexpected_output or test.run > 1)
-    if has_unexpected_output:
+    if ((sys.platform.startswith("os390") == 0) and  has_unexpected_output):
       # Rerun test failures after the indicator has processed the results.
       self._MaybeRerun(pool, test)
     # Update the perf database if the test succeeded.
@@ -192,17 +193,51 @@ class Runner(object):
       # remember the output for comparison.
       test.run += 1
       test.output = result[1]
-      pool.add([self._GetJob(test)])
+      if (sys.platform.startswith("os390") == 0):
+        pool.add([self._GetJob(test)])
     # Always update the perf database.
     return True
 
   def Run(self, jobs):
     self.indicator.Starting()
-    self._RunInternal(jobs)
+    if sys.platform.startswith("os390"):
+       self._RunSequential()
+    else:
+       self._RunInternal(jobs)
     self.indicator.Done()
     if self.failed or self.remaining:
       return 1
     return 0
+
+  def _RunSequential(self):
+      os.system("rm /tmp/cleanup_semaphores.sh | true")
+      os.system("touch /tmp/cleanup_semaphores.sh")
+      os.system("chmod a+rx /tmp/cleanup_semaphores.sh")
+      #os.system("echo '#!/bin/bash' >> /tmp/cleanup_semaphores.sh")
+      os.system("echo 'ME=`whoami`' >> /tmp/cleanup_semaphores.sh")
+      os.system("echo 'for u in `ipcs -s | grep $ME | tr -s'\" ' '\"'| cut -d'\"'"
+                " '\"' -f2` ; do ipcrm -s  $u; done'>>/tmp/cleanup_semaphores.sh")
+      queue = [];
+      for test in self.tests:
+          assert test.id >= 0
+      #try:
+          result = RunTest(self._GetJob(test))
+          if self.context.predictable:
+             update_perf = self._ProcessTestPredictable(test, result, queue)
+          else:
+             update_perf = self._ProcessTestNormal(test, result, queue)
+          if update_perf:
+             self._RunPerfSafe(lambda: self.perfdata.UpdatePerfData(test))
+      #finally:
+      #   self._RunPerfSafe(lambda: self.perf_data_manager.close())
+      #   if self.perf_failures:
+            # Nuke perf data in case of failures. This might not work on windows as
+            # some files might still be open.
+      #     print "Deleting perf test data due to db corruption."
+      #     shutil.rmtree(self.datapath)
+
+      # Make sure that any allocations were printed in predictable mode.
+      #assert not self.context.predictable or self.printed_allocations
 
   def _RunInternal(self, jobs):
     pool = Pool(jobs)

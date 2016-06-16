@@ -82,6 +82,27 @@ int MacroAssembler::CallSize(Register target) {
 }
 
 
+void MacroAssembler::CallC(Register target) {
+  BlockTrampolinePoolScope block_trampoline_pool(this);
+  Label start;
+  bind(&start);
+
+  // Statement positions are expected to be recorded when the target
+  // address is loaded.
+  positions_recorder()->WriteRecordedPositions();
+#ifdef V8_OS_ZOS
+  // Branch to target via indirect branch
+  basr(r7, target);
+  nop(BASR_CALL_TYPE_NOP);
+  DCHECK_EQ(CallSize(target) + 2, SizeOfCodeGeneratedSince(&start));
+#else
+  // Branch to target via indirect branch
+  basr(r14, target);
+  DCHECK_EQ(CallSize(target), SizeOfCodeGeneratedSince(&start));
+#endif
+}
+
+
 void MacroAssembler::Call(Register target) {
   BlockTrampolinePoolScope block_trampoline_pool(this);
   Label start;
@@ -775,11 +796,11 @@ int MacroAssembler::LeaveFrame(StackFrame::Type type,
   // Drop the execution stack down to the frame pointer and restore
   // the caller frame pointer and return address.
   LoadP(r14, MemOperand(fp, StandardFrameConstants::kCallerPCOffset));
-  LoadP(ip, MemOperand(fp, StandardFrameConstants::kCallerFPOffset));
-  int frame_ends = pc_offset();
-  lay(sp, MemOperand(fp,
+  lay(r1, MemOperand(fp,
       StandardFrameConstants::kCallerSPOffset + stack_adjustment));
-  LoadRR(fp, ip);
+  LoadP(fp, MemOperand(fp, StandardFrameConstants::kCallerFPOffset));
+  LoadRR(sp, r1);
+  int frame_ends = pc_offset();
   return frame_ends;
 }
 
@@ -868,7 +889,6 @@ void MacroAssembler::EnterExitFrame(bool save_doubles, int stack_space) {
     DCHECK(frame_alignment == 8);
     ClearRightImm(sp, sp, Operand(3));  // equivalent to &= -8
   }
-
   StoreP(MemOperand(sp, -kNumRequiredStackFrameSlots * kPointerSize),
          Operand::Zero(), r0);
   lay(sp, MemOperand(sp, -kNumRequiredStackFrameSlots * kPointerSize));
@@ -2350,9 +2370,26 @@ void MacroAssembler::CallApiFunctionAndReturn(
   // Native call returns to the DirectCEntry stub which redirects to the
   // return address pushed on stack (could have moved after GC).
   // DirectCEntry stub itself is generated early and never moves.
+#ifdef V8_OS_ZOS
+  // Shuffle the arguments from Linux arg registers to XPLINK arg regs.
+  // Reassign stack pointer to r4.
+  LoadRR(r1, r2);
+  if (function_address.is(r3)) {
+    LoadRR(r2, r3);
+  } else {
+    LoadRR(r2, r3);
+    LoadRR(r3, r4);
+  }
+  lay(r4, MemOperand(sp, -(kStackPointerBias + 18 * kPointerSize)));
+  LoadRR(r10, r7);  // Clobbered root register.
+#endif
+
   DirectCEntryStub stub(isolate());
   stub.GenerateCall(this, scratch);
-
+#ifdef V8_OS_ZOS
+  LoadRR(r7, r10);
+  InitializeRootRegister();
+#endif
   if (FLAG_log_timer_events) {
     FrameScope frame(this, StackFrame::MANUAL);
     PushSafepointRegisters();
@@ -3405,6 +3442,11 @@ static const int kRegisterPassedArguments = 5;
 int MacroAssembler::CalculateStackPassedWords(int num_reg_arguments,
                                               int num_double_arguments) {
   int stack_passed_words = 0;
+#ifdef V8_OS_ZOS
+  // XPLINK Linkage reserves space for arguments on the stack
+  // even when passing them via registers.
+  stack_passed_words = num_reg_arguments + num_double_arguments;
+#else
   if (num_double_arguments > DoubleRegister::kNumRegisters) {
       stack_passed_words +=
         2 * (num_double_arguments - DoubleRegister::kNumRegisters);
@@ -3413,6 +3455,7 @@ int MacroAssembler::CalculateStackPassedWords(int num_reg_arguments,
   if (num_reg_arguments > kRegisterPassedArguments) {
     stack_passed_words += num_reg_arguments - kRegisterPassedArguments;
   }
+#endif
   return stack_passed_words;
 }
 
@@ -3463,19 +3506,27 @@ void MacroAssembler::PrepareCallCFunction(int num_reg_arguments,
   int frame_alignment = ActivationFrameAlignment();
   int stack_passed_arguments = CalculateStackPassedWords(
       num_reg_arguments, num_double_arguments);
+#ifdef V8_OS_ZOS
+  Register c_sp   = r4;  // Stack pointer in C/C++.
+  int stack_space = 16;  // Save area + debug area + reserved space.
+  LoadRR(c_sp , sp);
+#else
   int stack_space = kNumRequiredStackFrameSlots;
+  Register c_sp   = sp;
+#endif
   if (frame_alignment > kPointerSize) {
     // Make stack end at alignment and make room for stack arguments
     // -- preserving original value of sp.
-    LoadRR(scratch, sp);
-    lay(sp, MemOperand(sp, -(stack_passed_arguments + 1) * kPointerSize));
+    LoadRR(scratch, c_sp);
+    lay(c_sp, MemOperand(c_sp, -(stack_passed_arguments + 1) * kPointerSize));
     DCHECK(IsPowerOf2(frame_alignment));
-    ClearRightImm(sp, sp, Operand(WhichPowerOf2(frame_alignment)));
-    StoreP(scratch, MemOperand(sp, (stack_passed_arguments) * kPointerSize));
+    ClearRightImm(c_sp, c_sp, Operand(WhichPowerOf2(frame_alignment)));
+    StoreP(scratch, MemOperand(c_sp, (stack_passed_arguments) * kPointerSize));
   } else {
     stack_space += stack_passed_arguments;
   }
-  lay(sp, MemOperand(sp, -(stack_space) * kPointerSize));
+  lay(c_sp,
+      MemOperand(c_sp, -((stack_space * kPointerSize) + kStackPointerBias)));
 }
 
 
@@ -3543,11 +3594,10 @@ void MacroAssembler::CallCFunctionHelper(Register function,
   // allow preemption, so the return address in the link register
   // stays correct.
 #if ABI_USES_FUNCTION_DESCRIPTORS && !defined(USE_SIMULATOR)
-  // AIX uses a function descriptor. When calling C code be aware
+  // z/OS uses a function descriptor. When calling C code be aware
   // of this descriptor and pick up values from it
-  LoadP(ToRegister(ABI_TOC_REGISTER), MemOperand(function, kPointerSize));
-  LoadP(ip, MemOperand(function, 0));
-  Register dest = ip;
+  LoadMultipleP(r5, r6, MemOperand(function, 0));
+  Register dest = r6;
 #elif ABI_TOC_ADDRESSABILITY_VIA_IP
   Move(ip, function);
   Register dest = ip;
@@ -3555,17 +3605,23 @@ void MacroAssembler::CallCFunctionHelper(Register function,
   Register dest = function;
 #endif
 
+#ifdef V8_OS_ZOS
+  CallC(dest);
+#else
   Call(dest);
-
+#endif
+  // Javascript stack pointer will be restored by the callee's epilogue.
+#ifndef V8_OS_ZOS
   int stack_passed_arguments = CalculateStackPassedWords(
       num_reg_arguments, num_double_arguments);
   int stack_space = kNumRequiredStackFrameSlots + stack_passed_arguments;
   if (ActivationFrameAlignment() > kPointerSize) {
-    // Load the original stack pointer (pre-alignment) from the stack
+    // Load the original stack pointer (pre-alignment) from the stack.
     LoadP(sp, MemOperand(sp, stack_space * kPointerSize));
   } else {
     la(sp, MemOperand(sp, stack_space * kPointerSize));
   }
+#endif
 }
 
 

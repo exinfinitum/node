@@ -45,7 +45,7 @@
 #define V8_S390_ASSEMBLER_S390_H_
 #include <stdio.h>
 
-#if V8_HOST_ARCH_S390
+#if V8_HOST_ARCH_S390 && V8_OS_LINUX
 // elf.h include is required for auxv check for STFLE facility used
 // for hardware detection, which is sensible only on s390 hosts.
 #include <elf.h>
@@ -53,11 +53,15 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#if V8_OS_ZOS
+// xlC defines cds in stdlib.h.
+#undef cds
+#endif
 #include "src/assembler.h"
 #include "src/s390/constants-s390.h"
 #include "src/serialize.h"
 
-#define ABI_USES_FUNCTION_DESCRIPTORS 0
+#define ABI_USES_FUNCTION_DESCRIPTORS V8_OS_ZOS
 
 #define ABI_PASSES_HANDLES_IN_REGS 1
 
@@ -1717,6 +1721,8 @@ SS2_FORM(zap);
     NON_MARKING_NOP = 0,
     GROUP_ENDING_NOP,
     DEBUG_BREAK_NOP,
+    BASR_CALL_TYPE_NOP,
+    BRAS_CALL_TYPE_NOP,
     // IC markers.
     PROPERTY_ACCESS_INLINED,
     PROPERTY_ACCESS_INLINED_CONTEXT,
@@ -1829,6 +1835,18 @@ SS2_FORM(zap);
 
   // Generate the constant pool for the generated code.
   void PopulateConstantPool(ConstantPoolArray* constant_pool);
+
+#ifdef V8_OS_ZOS
+  // Generate function descirptor for z/OS.
+  void function_descriptor();
+
+  static void RelocateInternalReference(Address pc, intptr_t delta,
+                                        Address code_start,
+                                        ICacheFlushMode icache_flush_mode =
+                                            FLUSH_ICACHE_IF_NEEDED);
+
+  static int DecodeInternalReference(Vector<char> buffer, Address pc);
+#endif
 
  public:
   byte* buffer_pos() const { return buffer_; }

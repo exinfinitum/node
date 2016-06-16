@@ -390,11 +390,6 @@ class Isolate {
  public:
   ~Isolate();
 
-  // ISSUE-14576: allow to access process_wide_mutex_ from sampler.cc
-  static base::Mutex* GetProcessWideMutexPointer() {
-    return process_wide_mutex_.Pointer();
-  }
-
   // A thread has a PerIsolateThreadData instance for each isolate that it has
   // entered. That instance is allocated when the isolate is initially entered
   // and reused on subsequent entries.
@@ -721,9 +716,6 @@ class Isolate {
       bool capture,
       int frame_limit,
       StackTrace::StackTraceOptions options);
-
-  typedef bool (*abort_on_uncaught_exception_t)(v8::Isolate*);
-  void SetAbortOnUncaughtException(abort_on_uncaught_exception_t callback);
 
   void PrintCurrentStackTrace(FILE* out);
   void PrintStack(StringStream* accumulator);
@@ -1348,8 +1340,6 @@ class Isolate {
   List<CallCompletedCallback> call_completed_callbacks_;
 
   v8::Isolate::UseCounterCallback use_counter_callback_;
-
-  abort_on_uncaught_exception_t abort_on_uncaught_exception_callback_;
 
   friend class ExecutionAccess;
   friend class HandleScopeImplementer;
