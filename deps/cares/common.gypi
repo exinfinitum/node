@@ -41,6 +41,9 @@
         'defines': [ 'NDEBUG' ],
         'cflags': [
           '-O3',
+          '-fomit-frame-pointer',
+          '-fdata-sections',
+          '-ffunction-sections'
         ],
         'msvs_settings': {
           'VCCLCompilerTool': {
@@ -71,14 +74,6 @@
             'LinkIncremental': 1 # disable incremental linking
           },
         },
-        'conditions': [
-        ['OS != "os390"', {
-          'cflags': [
-            '-fomit-frame-pointer',
-            '-fdata-sections',
-            '-ffunction-sections',
-          ]
-        }]]
       }
     },
 
@@ -109,6 +104,26 @@
       },
     },
 
+    'xcode_settings': {
+      'ALWAYS_SEARCH_USER_PATHS': 'NO',
+      'GCC_CW_ASM_SYNTAX': 'NO',                # No -fasm-blocks
+      'GCC_ENABLE_CPP_EXCEPTIONS': 'NO',        # -fno-exceptions
+      'GCC_ENABLE_CPP_RTTI': 'NO',              # -fno-rtti
+      'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
+      # GCC_INLINES_ARE_PRIVATE_EXTERN maps to -fvisibility-inlines-hidden
+      'GCC_INLINES_ARE_PRIVATE_EXTERN': 'YES',
+      'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES',      # -fvisibility=hidden
+      'GCC_THREADSAFE_STATICS': 'NO',           # -fno-threadsafe-statics
+      'GCC_WARN_ABOUT_MISSING_NEWLINE': 'YES',  # -Wnewline-eof
+      'PREBINDING': 'NO',                       # No -Wl,-prebind
+      'USE_HEADERMAP': 'NO',
+      'WARNING_CFLAGS': [
+        '-Wall',
+        '-Wendif-labels',
+        '-W',
+        '-Wno-unused-parameter'
+      ]
+    },
 
     'conditions': [
       ['OS == "win"', {
@@ -122,29 +137,6 @@
         ],
       }],
 
-      [ 'OS!="os390"', {
-        'xcode_settings': {
-          'ALWAYS_SEARCH_USER_PATHS': 'NO',
-          'GCC_CW_ASM_SYNTAX': 'NO',                # No -fasm-blocks
-          'GCC_ENABLE_CPP_EXCEPTIONS': 'NO',        # -fno-exceptions
-          'GCC_ENABLE_CPP_RTTI': 'NO',              # -fno-rtti
-          'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
-          # GCC_INLINES_ARE_PRIVATE_EXTERN maps to -fvisibility-inlines-hidden
-          'GCC_INLINES_ARE_PRIVATE_EXTERN': 'YES',
-          'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES',      # -fvisibility=hidden
-          'GCC_THREADSAFE_STATICS': 'NO',           # -fno-threadsafe-statics
-          'GCC_WARN_ABOUT_MISSING_NEWLINE': 'YES',  # -Wnewline-eof
-          'PREBINDING': 'NO',                       # No -Wl,-prebind
-          'USE_HEADERMAP': 'NO',
-          'WARNING_CFLAGS': [
-            '-Wall',
-            '-Wendif-labels',
-            '-W',
-            '-Wno-unused-parameter'
-          ]
-        },
-      }],
-      
       [ 'OS in "linux freebsd openbsd solaris android aix"', {
         'variables': {
           'gcc_version%': '<!(python build/gcc_version.py)>)'
