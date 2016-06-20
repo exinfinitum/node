@@ -3,7 +3,7 @@
     'conditions': [
       ['OS!="win"', {
         'defines': [
-          '_DARWIN_USE_64_BIT_INODE=1',
+          #'_DARWIN_USE_64_BIT_INODE=1',
           '_LARGEFILE_SOURCE',
           '_FILE_OFFSET_BITS=64',
           '_GNU_SOURCE'
@@ -117,7 +117,13 @@
             '-lws2_32.lib',
             '-liphlpapi.lib'
           ],
-        }, {
+        }],
+        [ 'OS=="os390"', {
+          'cflags': [
+            '-g',
+          ],
+        }],
+        [ 'OS not in "win os390"', {
           # Not Windows i.e. POSIX
           'cflags': [
             '-g',
@@ -127,7 +133,7 @@
             '-Wno-unused-parameter'
           ],
         }],
-        [ 'OS not in "win android"', {
+        [ 'OS not in "win android os390"', {
           'cflags': [
             '--std=gnu89'
           ],
