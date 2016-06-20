@@ -83,6 +83,7 @@ OBJS += src/ares_platform.o
 LDFLAGS += -lws2_32.lib -liphlpapi.lib
 else
 ifneq (,$(findstring os/390,$(OS)))
+ARES_CONFIG_OS = OS390
 CFLAGS += -g
 CFLAGS += -qXPLINK
 CFLAGS += -D_LARGEFILE_SOURCE

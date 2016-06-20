@@ -162,6 +162,10 @@
           'include_dirs': [ 'config/aix' ],
           'sources': [ 'config/aix/ares_config.h' ],
         }],
+        [ 'OS=="os390"', {
+          'include_dirs': [ 'config/OS390' ],
+          'sources': [ 'config/OS390/ares_config.h' ],
+        }],
         [ 'OS=="solaris"', {
           'include_dirs': [ 'config/sunos' ],
           'sources': [ 'config/sunos/ares_config.h' ],
