@@ -3397,6 +3397,16 @@ void StringCharCodeAtGenerator::GenerateSlow(
   __ Push(object_, index_);
   __ CallRuntime(Runtime::kStringCharCodeAtRT, 2);
   __ Move(result_, r2);
+#ifdef V8_OS_ZOS
+  __ mov(result_, Operand(ExternalReference::ebcdic_to_ascii_table()));
+  __ lay(sp, MemOperand(sp, -kPointerSize));
+  __ SmiUntag(r2);
+  __ StoreByte(r2 , MemOperand(sp, 0));
+  __ Translate(sp, MemOperand(result_, 0), 0);
+  __ LoadlB(result_ , MemOperand(sp, 0));
+  __ SmiTag(result_);
+  __ pop();
+#endif
   call_helper.AfterCall(masm);
   __ b(&exit_);
 
@@ -3406,8 +3416,7 @@ void StringCharCodeAtGenerator::GenerateSlow(
 
 // -------------------------------------------------------------------------
 // StringCharFromCodeGenerator
-
-  void StringCharFromCodeGenerator::GenerateFast(MacroAssembler* masm) {
+void StringCharFromCodeGenerator::GenerateFast(MacroAssembler* masm) {
   // Fast case of Heap::LookupSingleCharacterStringFromCode.
   DCHECK(IsPowerOf2(String::kMaxOneByteCharCode + 1));
   __ LoadSmiLiteral(r0, Smi::FromInt(~String::kMaxOneByteCharCode));
@@ -3426,6 +3435,7 @@ void StringCharCodeAtGenerator::GenerateSlow(
   __ Translate(sp, MemOperand(result_, 0), 0);
   __ LoadlB(code_ , MemOperand(sp, 0));
   __ SmiTag(code_);
+  __ pop();
 #endif
   __ LoadRoot(result_, Heap::kSingleCharacterStringCacheRootIndex);
   __ SmiToPtrArrayOffset(code_, code_);
@@ -3453,6 +3463,7 @@ void StringCharFromCodeGenerator::GenerateSlow(
   __ Translate(sp, MemOperand(result_, 0), 0);
   __ LoadlB(code_ , MemOperand(sp, 0));
   __ SmiTag(code_);
+  __ pop();
 #endif
   __ push(code_);
   __ CallRuntime(Runtime::kCharFromCode, 1);
