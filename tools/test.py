@@ -144,6 +144,9 @@ class ProgressIndicator(object):
       self.remaining -= 1
       self.HasRun(output)
       self.lock.release()
+      CleanupSemaphores()
+    CleanupSemaphores()
+
 
 
 def EscapeCommand(command):
@@ -490,11 +493,16 @@ class TestOutput(object):
       return execution_failed
 
 
-def KillProcessWithID(pid):
+def KillProcessWithID(process):
   if utils.IsWindows():
-    os.popen('taskkill /T /F /PID %d' % pid)
+    os.popen('taskkill /T /F /PID %d' % process.pid)
   else:
-    os.kill(pid, signal.SIGTERM)
+    try:
+      process.kill()
+    except OSError:
+      sys.stderr.write('Error: Process %s already ended.\n' % process.pid)
+#  else:
+#    os.kill(pid, signal.SIGTERM)
 
 
 MAX_SLEEP_TIME = 0.1
@@ -544,7 +552,7 @@ def RunProcess(context, timeout, args, **rest):
   while exit_code is None:
     if (not end_time is None) and (time.time() >= end_time):
       # Kill the process and wait for it to exit.
-      KillProcessWithID(process.pid)
+      KillProcessWithID(process)
       exit_code = process.wait()
       timed_out = True
     else:
@@ -1526,6 +1534,14 @@ def Main():
 
   return result
 
+def CleanupSemaphores():
+ if (platform.system() == 'OS/390'):
+   os.system("for u in $(ipcs -s | grep `whoami` | tr -s ' ' | cut -d ' ' -f2) ;"
+             "do ipcrm -s $u; done")
+   os.system("for u in $(ipcs -s | grep `whoami` | tr -s ' ' | cut -d ' ' -f2) ;"
+             "do ipcrm -q $u; done")
+
 
 if __name__ == '__main__':
   sys.exit(Main())
+  CleanupSemaphores()

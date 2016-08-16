@@ -74,6 +74,9 @@
                 'USE_FILE32API'
               ],
             }],
+            ['OS=="os390"', {
+              'cflags': [ '-D_XOPEN_SOURCE_EXTENDED=1', '-D_XOPEN_SOURCE=600' ], 
+            }]
           ],
         },
       ],

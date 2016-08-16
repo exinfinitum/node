@@ -378,11 +378,22 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   static void __cdecl fn(void);                                       \
   __declspec(dllexport, allocate(".CRT$XCU"))                         \
       void (__cdecl*fn ## _)(void) = fn;                              \
-  static void __cdecl fn(void)
+  static void __cdecl fn(void) {                                      \
+    node_module_register(&_module);                                   \
+  }
+#elif defined(__MVS__)
+#define NODE_C_CTOR(fn)                                               \
+  static int fn() {                                                   \
+    node_module_register(&_module);                                   \
+    return 1;                                                         \
+  }                                                                   \
+  static int fn##_initializer = fn();
 #else
 #define NODE_C_CTOR(fn)                                               \
   static void fn(void) __attribute__((constructor));                  \
-  static void fn(void)
+  static void fn(void) {                                              \
+    node_module_register(&_module);                                   \
+  }
 #endif
 
 #define NODE_MODULE_X(modname, regfunc, priv, flags)                  \
@@ -418,9 +429,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       priv,                                                           \
       NULL                                                            \
     };                                                                \
-    NODE_C_CTOR(_register_ ## modname) {                              \
-      node_module_register(&_module);                                 \
-    }                                                                 \
+    NODE_C_CTOR(_register_ ## modname)                                \
   }
 
 #define NODE_MODULE(modname, regfunc)                                 \

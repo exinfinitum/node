@@ -100,6 +100,26 @@ the binary verification command above.
 
 ## Build
 
+### z/OS
+
+Prerequisites:
+
+* XL C/C++ compiler v2.2 or newer
+* Python 2.6 or 2.7
+* GNU Make 4.1 or newer
+
+In deps/openssl/openssl:
+```text
+$ ./Configure OS390-Unix64
+$ make depend
+```
+
+Then, in node directory:
+```text
+$ ./configure --without-snapshot
+$ make
+```
+
 ### Unix / Macintosh
 
 Prerequisites:
