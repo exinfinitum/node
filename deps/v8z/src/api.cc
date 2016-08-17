@@ -656,13 +656,8 @@ SealHandleScope::~SealHandleScope() {
   DCHECK_EQ(current->next, current->limit);
   current->limit = prev_limit_;
 }
-
    
-void Isolate::SetAbortOnUncaughtException(
-  abort_on_uncaught_exception_t callback) {
-  i::Isolate* isolate = reinterpret_cast<i::Isolate*>(this);
-  isolate->SetAbortOnUncaughtException(callback);
-}
+   
 
 
 void Context::Enter() {
@@ -674,6 +669,15 @@ void Context::Enter() {
   impl->SaveContext(isolate->context());
   isolate->set_context(*env);
 }
+
+
+void Isolate::SetAbortOnUncaughtException(
+  abort_on_uncaught_exception_t callback) {
+  i::Isolate* isolate = reinterpret_cast<i::Isolate*>(this);
+  isolate->SetAbortOnUncaughtException(callback);
+}
+
+
 
 
 void Context::Exit() {

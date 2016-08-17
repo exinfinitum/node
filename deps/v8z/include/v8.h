@@ -954,6 +954,7 @@ class V8_EXPORT SealHandleScope {
   internal::Object** prev_limit_;
 };
 
+
 /**
  * A compiled JavaScript script, not yet tied to a Context.
  */
